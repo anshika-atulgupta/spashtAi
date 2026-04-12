@@ -1,26 +1,59 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-spasht-bg: #030712;
+  --color-spasht-nav: rgba(3, 7, 18, 0.7);
+  --color-spasht-card: rgba(17, 24, 39, 0.6);
+  --color-spasht-border: rgba(55, 65, 81, 0.5);
+  --color-primary: #3b82f6;
+  --color-primary-glow: rgba(59, 130, 246, 0.5);
+  --color-secondary: #a855f7;
+  --color-secondary-glow: rgba(168, 85, 247, 0.5);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  --background: #05040f;
+  --foreground: #f3f4f6;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
+
+/* ── Glassmorphism panel ───────────────────────────────────────────── */
+.glass-panel {
+  background-color: rgba(14, 14, 22, 0.72);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(100, 130, 255, 0.1);
+  box-shadow: 0 0 40px rgba(59, 130, 246, 0.06);
+}
+
+/* ── Text Gradient ─────────────────────────────────────────────────── */
+.text-gradient {
+  background: linear-gradient(to right, var(--color-primary), var(--color-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.bg-gradient-primary {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+}
+
+.glow-primary {
+  box-shadow: 0 0 20px var(--color-primary-glow);
+}
+
+.glow-secondary {
+  box-shadow: 0 0 20px var(--color-secondary-glow);
+}
+
+/* ── Subtle scrollbar ──────────────────────────────────────────────── */
+.subtle-scrollbar::-webkit-scrollbar { width: 4px; }
+.subtle-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.subtle-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }

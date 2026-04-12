@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SpashtAI 🌌
 
-## Getting Started
+**SpashtAI** is a premium, transparency-first insurance policy analyzer. It transforms complex, jargon-heavy insurance documents into clear, actionable insights using cutting-edge AI and a world-class 3D immersive user experience.
 
-First, run the development server:
+![SpashtAI Hero](https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=2072&ixlib=rb-4.0.3)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## ✨ Features
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **3D Deep Space Experience**: A custom-built Three.js galaxy environment that provides a unique, "floating in space" feeling throughout the app.
+- **AI Policy Extraction**: Powered by **Gemini 2.5 Flash**, the app extracts hidden exclusions, coverage details, and personalized risks from any PDF insurance policy.
+- **Glassmorphic UI**: High-end visual design featuring translucent panels, subtle glows, and fluid animations using Framer Motion.
+- **Insight Deck**: A swipeable, gesture-based interface for reviewing policy insights, making document analysis feel like a modern discovery experience.
+- **Personalized Risk Scoring**: Generates a dynamic "SpashtAI Score" by measuring how well a policy aligns with your unique profile (age, dependents, risk appetite).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🚀 Tech Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Framework**: [Next.js 15 (App Router)](https://nextjs.org/)
+- **AI Engine**: [Google Gemini 2.5 Flash](https://ai.google.dev/)
+- **3D Graphics**: [Three.js](https://threejs.org/) via [@react-three/fiber](https://github.com/pmndrs/react-three-fiber)
+- **Animations**: [Framer Motion](https://www.framer.com/motion/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **Auth & DB**: [Firebase](https://firebase.google.com/)
 
-## Learn More
+## 🛠️ Getting Started
 
-To learn more about Next.js, take a look at the following resources:
+### Prerequisites
+- Node.js 18+ 
+- A Gemini API Key from [Google AI Studio](https://aistudio.google.com/)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Installation
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/anshika-atulgupta/spashtAi.git
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Set up environment variables:
+   Create a `.env.local` file in the root directory and add:
+   ```env
+   GEMINI_API_KEY=your_gemini_api_key_here
+   # Add your Firebase config variables if using Auth/Firestore
+   NEXT_PUBLIC_FIREBASE_API_KEY=...
+   ```
+4. Run the development server:
+   ```bash
+   npm run dev
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🌌 Core Components
 
-## Deploy on Vercel
+- **SpaceBackground**: A custom 3D star field with over 4,000 particles and a procedural Milky Way band.
+- **AnalyzeAction**: A robust server action that parses PDFs, handles JSON extraction, and manages AI tokens efficiently.
+- **InsightCard**: Gesture-driven component for interactive data visualization.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Built with ❤️ by the SpashtAI Team.
