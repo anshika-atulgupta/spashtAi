@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
 import SpaceBackgroundClient from "@/components/ui/SpaceBackgroundClient";
-
+import { AuthProvider } from "@/components/layout/AuthProvider";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -33,11 +33,14 @@ export default function RootLayout({
         {/* 3-D galaxy background — sits fixed behind everything */}
         <SpaceBackgroundClient />
 
-        <Navbar />
-        <main className="flex-1 pt-16 relative z-10">
-          {children}
-        </main>
+        <AuthProvider>
+          <Navbar />
+          <main className="flex-1 pt-16 relative z-10">
+            {children}
+          </main>
+        </AuthProvider>
       </body>
     </html>
+
   );
 }

@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react';
-import { signInWithPopup } from 'firebase/auth';
-import { auth, googleProvider } from '@/lib/firebase/config';
+import { signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth, googleProvider, db } from '@/lib/firebase/config';
+import { doc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/components/layout/AuthProvider';
 import Link from 'next/link';
 
 export default function LoginPage() {
@@ -14,21 +16,65 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [mode, setMode] = useState<'signin' | 'join'>('signin');
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && user && !isLoading) {
+      router.push('/dashboard');
+    }
+  }, [user, loading, isLoading, router]);
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     setError('');
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      localStorage.setItem('spashtai_user', JSON.stringify({
-        uid: result.user.uid,
-        email: result.user.email,
-        name: result.user.displayName,
-      }));
-      router.push('/onboarding');
+      
+      // Check if user has an onboarding profile
+      const docRef = doc(db, 'users', result.user.uid);
+      const snapshot = await getDoc(docRef);
+      
+      if (snapshot.exists()) {
+        router.push('/dashboard');
+      } else {
+        router.push('/onboarding');
+      }
     } catch (err: any) {
       console.error(err);
       setError(err.message || 'Failed to sign in. Please try again.');
+      setIsLoading(false);
+    }
+  };
+
+  const handleEmailAuth = async () => {
+    if (!email || !password) {
+      setError('Please enter both email and password.');
+      return;
+    }
+    setIsLoading(true);
+    setError('');
+    try {
+      let result;
+      if (mode === 'signin') {
+        result = await signInWithEmailAndPassword(auth, email, password);
+      } else {
+        result = await createUserWithEmailAndPassword(auth, email, password);
+      }
+      
+      const docRef = doc(db, 'users', result.user.uid);
+      const snapshot = await getDoc(docRef);
+      
+      if (snapshot.exists()) {
+        router.push('/dashboard');
+      } else {
+        router.push('/onboarding');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Authentication failed. Please check your credentials.');
       setIsLoading(false);
     }
   };
@@ -113,6 +159,8 @@ export default function LoginPage() {
                 <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Email</label>
                 <input
                   type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   className="w-full bg-white/4 border border-white/8 text-white rounded-2xl px-5 py-4 focus:outline-none focus:border-blue-500/50 focus:bg-white/6 transition-all placeholder:text-gray-700 text-sm"
                 />
@@ -121,7 +169,9 @@ export default function LoginPage() {
                 <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2">Password</label>
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="At least 12 characters"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="At least 6 characters"
                   className="w-full bg-white/4 border border-white/8 text-white rounded-2xl px-5 py-4 pr-12 focus:outline-none focus:border-blue-500/50 focus:bg-white/6 transition-all placeholder:text-gray-700 text-sm"
                 />
                 <button
@@ -178,6 +228,7 @@ export default function LoginPage() {
 
             {/* Submit */}
             <button
+              onClick={handleEmailAuth}
               disabled={isLoading}
               className="w-full py-4 rounded-2xl font-semibold text-white transition-all disabled:opacity-50"
               style={{

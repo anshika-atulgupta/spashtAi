@@ -2,8 +2,12 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ArrowLeft, CheckCircle2, User, Heart, Wallet, Car, Smartphone, Cigarette, Wine, Dumbbell, MapPin, Calendar, Users } from 'lucide-react';
+import { ArrowRight, ArrowLeft, CheckCircle2, User, Heart, Wallet, Car, Smartphone, Cigarette, Wine, Dumbbell, MapPin, Calendar, Users, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/components/layout/AuthProvider';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
+import { useEffect } from 'react';
 
 // ─── Reusable Components ────────────────────────────────────────────────
 function Field({ label, icon, children }: { label: string; icon: React.ReactNode; children: React.ReactNode }) {
@@ -56,7 +60,18 @@ export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const totalSteps = 3;
+  const { user, profile, loading, refreshProfile } = useAuth();
+
+  useEffect(() => {
+    if (!loading) {
+      if (!user) {
+        router.push('/login');
+      } else if (profile) {
+        // If user already has a profile, they don't need to onboard again
+        router.push('/dashboard');
+      }
+    }
+  }, [user, profile, loading, router]);
 
   const [formData, setFormData] = useState({
     basicInfo: { age: '', gender: '', city: '' },
@@ -69,21 +84,38 @@ export default function OnboardingPage() {
     setFormData(prev => ({ ...prev, [section]: { ...prev[section], [field]: value } }));
   };
 
+  const [dir, setDir] = useState(1);
+  const totalSteps = 3;
+
+  const next = () => { setDir(1); setStep(s => Math.min(s + 1, totalSteps)); };
+  const back = () => { setDir(-1); setStep(s => Math.max(s - 1, 1)); };
+
   const handleSubmit = async () => {
+    if (!user) return;
     setIsSubmitting(true);
-    await new Promise(r => setTimeout(r, 800));
-    localStorage.setItem('spashtai_profile', JSON.stringify(formData));
-    router.push('/dashboard');
+    try {
+      await setDoc(doc(db, 'users', user.uid), formData);
+      await refreshProfile(user.uid);
+      router.push('/dashboard');
+    } catch (err) {
+      console.error('Failed to save profile', err);
+      setIsSubmitting(false);
+    }
   };
+
+  if (loading || !user || profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+      </div>
+    );
+  }
 
   const variants = {
     enter: (dir: number) => ({ opacity: 0, x: dir > 0 ? 40 : -40 }),
     center: { opacity: 1, x: 0 },
     exit: (dir: number) => ({ opacity: 0, x: dir > 0 ? -40 : 40 }),
   };
-  const [dir, setDir] = useState(1);
-  const next = () => { setDir(1); setStep(s => Math.min(s + 1, totalSteps)); };
-  const back = () => { setDir(-1); setStep(s => Math.max(s - 1, 1)); };
 
   const stepMeta = [
     { title: 'The Basics', subtitle: 'Tell us a bit about yourself', icon: <User className="w-5 h-5" /> },

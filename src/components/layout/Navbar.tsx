@@ -42,6 +42,7 @@ export default function Navbar() {
           <Link href="/#about" className="hover:text-white transition-colors">About</Link>
           <Link href="/#features" className="hover:text-white transition-colors">Features</Link>
           <Link href="/dashboard" className="hover:text-white transition-colors">Dashboard</Link>
+          <Link href="/simulator" className="hover:text-white transition-colors">Simulator</Link>
           <Link href="/#faq" className="hover:text-white transition-colors">FAQ</Link>
         </div>
 
@@ -87,7 +88,7 @@ export default function Navbar() {
           }}
         >
           <div className="p-4 space-y-1">
-            {['/#about', '/#features', '/dashboard', '/#faq'].map((href, i) => (
+            {['/#about', '/#features', '/dashboard', '/simulator', '/#faq'].map((href, i) => (
               <Link
                 key={i}
                 href={href}

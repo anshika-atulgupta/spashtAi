@@ -8,6 +8,9 @@ import {
 } from 'lucide-react';
 import { analyzePolicy } from '@/app/actions';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/components/layout/AuthProvider';
+import { signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase/config';
 
 type InsightCard = {
   id: string;
@@ -32,17 +35,17 @@ export default function DashboardPage() {
   const [score, setScore] = useState<number | null>(null);
   const [deck, setDeck] = useState<InsightCard[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [userProfile, setUserProfile] = useState<any>(null);
-  const [loginUser, setLoginUser] = useState<any>(null);
+  const { user, profile, loading } = useAuth();
 
   useEffect(() => {
-    try {
-      const p = localStorage.getItem('spashtai_profile');
-      if (p) setUserProfile(JSON.parse(p));
-      const u = localStorage.getItem('spashtai_user');
-      if (u) setLoginUser(JSON.parse(u));
-    } catch {}
-  }, []);
+    if (!loading) {
+      if (!user) {
+        router.push('/login');
+      } else if (profile === null) {
+        router.push('/onboarding');
+      }
+    }
+  }, [user, profile, loading, router]);
 
   const handleDragEnd = (_e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo, cardId: string) => {
     if (Math.abs(info.offset.x) > 100 || Math.abs(info.offset.y) > 100) {
@@ -61,13 +64,13 @@ export default function DashboardPage() {
     reader.onload = async () => {
       try {
         const base64 = (reader.result as string).split(',')[1];
-        const profile = userProfile || { basicInfo: { age: 30 } };
-        const uid = loginUser?.uid || 'user_demo';
+        const currentProfile = profile || { basicInfo: { age: 30 } };
+        const uid = user?.uid || 'user_demo';
 
         const res = await analyzePolicy(
           uid,
           { inlineData: { data: base64, mimeType: 'application/pdf' } },
-          profile
+          currentProfile
         );
 
         if (res.success && res.data) {
@@ -106,7 +109,13 @@ export default function DashboardPage() {
 
       <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-6 relative z-10">
 
-        {/* ── Sidebar Profile ── */}
+        {loading ? (
+          <div className="flex-1 flex items-center justify-center min-h-[500px]">
+             <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+          </div>
+        ) : (
+          <>
+            {/* ── Sidebar Profile ── */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -125,18 +134,18 @@ export default function DashboardPage() {
               {/* Avatar */}
               <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold text-white border-4 mb-3"
                 style={{ background: 'linear-gradient(135deg,#2563eb,#7c3aed)', borderColor: '#05040f' }}>
-                {loginUser?.name?.charAt(0)?.toUpperCase() ?? 'U'}
+                {user?.displayName?.charAt(0)?.toUpperCase() ?? 'U'}
               </div>
 
-              <h2 className="font-bold text-white text-lg leading-tight">{loginUser?.name ?? 'Guest User'}</h2>
-              <p className="text-gray-500 text-sm mb-5 truncate">{loginUser?.email ?? 'Not signed in'}</p>
+              <h2 className="font-bold text-white text-lg leading-tight">{user?.displayName ?? 'Guest User'}</h2>
+              <p className="text-gray-500 text-sm mb-5 truncate">{user?.email ?? 'Not signed in'}</p>
 
               {/* Stats */}
               <div className="grid grid-cols-3 gap-2 text-center py-4 border-t border-white/5">
                 {[
-                  { label: 'Age', value: userProfile?.basicInfo?.age ?? '—' },
-                  { label: 'Deps', value: userProfile?.financial?.dependents ?? '0' },
-                  { label: 'Risk', value: userProfile?.financial?.riskAppetite?.charAt(0) ?? '—' },
+                  { label: 'Age', value: profile?.basicInfo?.age ?? '—' },
+                  { label: 'Deps', value: profile?.financial?.dependents ?? '0' },
+                  { label: 'Risk', value: profile?.financial?.riskAppetite?.charAt(0) ?? '—' },
                 ].map(s => (
                   <div key={s.label}>
                     <div className="text-base font-bold text-white">{String(s.value)}</div>
@@ -172,7 +181,10 @@ export default function DashboardPage() {
 
           {/* Sign-out */}
           <button
-            onClick={() => { localStorage.removeItem('spashtai_user'); router.push('/login'); }}
+            onClick={async () => { 
+              await signOut(auth); 
+              router.push('/login'); 
+            }}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-medium text-red-400 hover:bg-red-500/8 transition-all border border-red-500/10"
           >
             <LogOut className="w-4 h-4" /> Sign Out
@@ -336,6 +348,8 @@ export default function DashboardPage() {
             </motion.div>
           )}
         </div>
+          </>
+        )}
       </div>
     </div>
   );
