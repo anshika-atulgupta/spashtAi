@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Menu, X, ShieldCheck, LogOut, User } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/components/layout/AuthProvider';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase/config';
@@ -11,15 +11,8 @@ import { useRouter } from 'next/navigation';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const { user, loading } = useAuth();
   const router = useRouter();
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
 
   const handleSignOut = async () => {
     await signOut(auth);
@@ -28,22 +21,22 @@ export default function Navbar() {
   };
 
   const NAV_LINKS = [
-    { href: '/#about', label: 'About' },
+    { href: '/about', label: 'About' },
     { href: '/#features', label: 'Features' },
     { href: '/dashboard', label: 'Dashboard' },
+    { href: '/policy-insights', label: 'Policy Insights' },
     { href: '/simulator', label: 'Simulator' },
     { href: '/compare', label: 'Compare' },
-    { href: '/#faq', label: 'FAQ' },
   ];
 
   return (
     <nav
       className="fixed top-0 w-full z-50 transition-all duration-500"
       style={{
-        background: scrolled ? 'rgba(5, 4, 15, 0.80)' : 'transparent',
-        backdropFilter: scrolled ? 'blur(20px)' : 'none',
-        WebkitBackdropFilter: scrolled ? 'blur(20px)' : 'none',
-        borderBottom: scrolled ? '1px solid rgba(100,130,255,0.08)' : '1px solid transparent',
+        background: 'rgba(5, 4, 15, 0.75)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        borderBottom: '1px solid rgba(100,130,255,0.08)',
       }}
     >
       <div className="max-w-6xl mx-auto flex justify-between items-center h-16 px-6">
@@ -57,9 +50,9 @@ export default function Navbar() {
         </Link>
 
         {/* Desktop links */}
-        <div className="hidden md:flex items-center gap-7 text-sm text-gray-400 font-medium">
+        <div className="hidden md:flex items-center gap-6 text-sm text-gray-400 font-medium">
           {NAV_LINKS.map(({ href, label }) => (
-            <Link key={href} href={href} className="hover:text-white transition-colors">
+            <Link key={href} href={href} className="hover:text-white transition-colors whitespace-nowrap">
               {label}
             </Link>
           ))}
@@ -69,7 +62,6 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-3">
           {!loading && (
             user ? (
-              /* Signed in state */
               <div className="flex items-center gap-3">
                 <Link href="/dashboard">
                   <div className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-gray-300 hover:text-white hover:bg-white/6 transition-all border border-white/8 cursor-pointer">
@@ -85,7 +77,6 @@ export default function Navbar() {
                 </button>
               </div>
             ) : (
-              /* Signed out state */
               <>
                 <Link href="/login">
                   <button className="px-5 py-2 rounded-full text-sm font-medium text-gray-300 hover:text-white hover:bg-white/6 transition-all border border-white/8">
@@ -94,7 +85,7 @@ export default function Navbar() {
                 </Link>
                 <Link href="/login">
                   <button
-                    className="px-5 py-2 rounded-full text-sm font-bold text-white transition-all"
+                    className="px-5 py-2 rounded-full text-sm font-bold text-white transition-all hover:scale-105"
                     style={{
                       background: 'linear-gradient(135deg, #2563eb, #7c3aed)',
                       boxShadow: '0 0 18px rgba(99,102,241,0.35)',
@@ -124,8 +115,9 @@ export default function Navbar() {
           animate={{ opacity: 1, y: 0 }}
           className="md:hidden mx-4 mb-4 rounded-2xl overflow-hidden"
           style={{
-            background: 'rgba(12,12,24,0.95)',
-            backdropFilter: 'blur(20px)',
+            background: 'rgba(8,8,20,0.97)',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
             border: '1px solid rgba(100,130,255,0.1)',
           }}
         >

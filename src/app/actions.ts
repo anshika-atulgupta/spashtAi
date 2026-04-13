@@ -1,13 +1,15 @@
 'use server';
 
 import { GoogleGenAI } from '@google/genai';
+import { adminDb } from '@/lib/firebase/admin';
+import { FieldValue } from 'firebase-admin/firestore';
 
 export async function saveUserProfile(_userId: string, _data: unknown) {
   return { success: true };
 }
 
 export async function analyzePolicy(
-  _userId: string,
+  userId: string,
   fileDataPart: { inlineData: { data: string; mimeType: string } },
   userProfile: unknown
 ) {
@@ -30,10 +32,27 @@ export async function analyzePolicy(
 
 Return ONLY a single valid JSON object with exactly these keys:
 {
+  "policyName": "<inferred name/type of this policy, e.g. Star Health Individual Optima>",
   "score": <integer 0-100 representing overall policy quality for this user>,
-  "coverage": [<array of strings — what IS covered>],
-  "exclusions": [<array of strings — what is NOT covered>],
-  "personalizedRisks": [<array of strings — specific risks for this user based on their profile>]
+  "scoreBreakdown": {
+    "coverage": <integer 0-100, how comprehensive the coverage is>,
+    "exclusions": <integer 0-100, the fewer exclusions the higher the score>,
+    "userFit": <integer 0-100, how well this policy fits the user's profile>,
+    "affordability": <integer 0-100, value for money based on typical premiums>,
+    "claimEase": <integer 0-100, how easy claims appear to be from the document>
+  },
+  "scoreReason": "<2-3 sentence plain-language explanation of why this score was given>",
+  "improvements": [<array of 3-5 actionable strings - what the user can do to get better coverage or a higher score>],
+  "coverage": [<array of strings — what IS covered, be specific>],
+  "exclusions": [<array of strings — what is NOT covered, be specific>],
+  "personalizedRisks": [<array of strings — specific risks for this user based on their profile>],
+  "keyFacts": {
+    "sumInsured": "<e.g. ₹5 Lakhs or Not Specified>",
+    "policyType": "<e.g. Individual / Family Floater>",
+    "networkHospitals": "<e.g. 5000+ or Not Specified>",
+    "waitingPeriod": "<e.g. 2 years for pre-existing or Not Specified>",
+    "renewability": "<e.g. Lifelong or Not Specified>"
+  }
 }
 
 User Profile:
@@ -63,10 +82,10 @@ Do NOT wrap the JSON in markdown. Do NOT add any explanation. Just the raw JSON 
         contents,
       });
     } catch (err: any) {
-      if (err.status === 503 || err.message?.includes('503') || err.message?.includes('UNAVAILABLE')) {
-        console.warn('Gemini 2.5 Flash unavailable (503), falling back to Gemini 2.0 Flash');
+      if (err.status === 503 || err.status === 429 || err.message?.includes('503') || err.message?.includes('429') || err.message?.includes('UNAVAILABLE') || err.message?.includes('quota')) {
+        console.warn('Gemini 2.5 Flash unavailable or rate limited, falling back to Gemini 2.0 Flash Lite');
         response = await ai.models.generateContent({
-          model: 'gemini-2.0-flash',
+          model: 'gemini-2.0-flash-lite',
           contents,
         });
       } else {
@@ -83,11 +102,75 @@ Do NOT wrap the JSON in markdown. Do NOT add any explanation. Just the raw JSON 
     }
 
     const result = JSON.parse(raw);
+
+    // Save analysis to Firestore under users/{userId}/policyAnalyses
+    if (userId && userId !== 'user_demo') {
+      try {
+        const analysisRef = adminDb
+          .collection('users')
+          .doc(userId)
+          .collection('policyAnalyses')
+          .doc();
+
+        await analysisRef.set({
+          id: analysisRef.id,
+          policyName: result.policyName ?? 'Unnamed Policy',
+          score: result.score ?? 0,
+          scoreBreakdown: result.scoreBreakdown ?? {},
+          scoreReason: result.scoreReason ?? '',
+          improvements: result.improvements ?? [],
+          coverage: result.coverage ?? [],
+          exclusions: result.exclusions ?? [],
+          personalizedRisks: result.personalizedRisks ?? [],
+          keyFacts: result.keyFacts ?? {},
+          uploadedAt: FieldValue.serverTimestamp(),
+        });
+      } catch (dbErr) {
+        console.error('[analyzePolicy] Firestore save error:', dbErr);
+        // Don't fail the whole analysis if save fails
+      }
+    }
+
     return { success: true, data: result };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('[analyzePolicy] Error:', message);
     return { success: false, error: message };
+  }
+}
+
+export async function getUserPolicyAnalyses(userId: string) {
+  try {
+    const snapshot = await adminDb
+      .collection('users')
+      .doc(userId)
+      .collection('policyAnalyses')
+      .orderBy('uploadedAt', 'desc')
+      .limit(10)
+      .get();
+
+    const analyses = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        policyName: data.policyName ?? 'Unnamed Policy',
+        score: data.score ?? 0,
+        scoreBreakdown: data.scoreBreakdown ?? {},
+        scoreReason: data.scoreReason ?? '',
+        improvements: data.improvements ?? [],
+        coverage: data.coverage ?? [],
+        exclusions: data.exclusions ?? [],
+        personalizedRisks: data.personalizedRisks ?? [],
+        keyFacts: data.keyFacts ?? {},
+        uploadedAt: data.uploadedAt?.toDate?.()?.toISOString() ?? new Date().toISOString(),
+      };
+    });
+
+    return { success: true, data: analyses };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('[getUserPolicyAnalyses] Error:', message);
+    return { success: false, error: message, data: [] };
   }
 }
 
@@ -128,8 +211,8 @@ ${JSON.stringify(userProfile, null, 2)}
     try {
       response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents });
     } catch (err: any) {
-      if (err.status === 503 || err.message?.includes('503') || err.message?.includes('UNAVAILABLE')) {
-        response = await ai.models.generateContent({ model: 'gemini-2.0-flash', contents });
+      if (err.status === 503 || err.status === 429 || err.message?.includes('503') || err.message?.includes('429') || err.message?.includes('UNAVAILABLE') || err.message?.includes('quota')) {
+        response = await ai.models.generateContent({ model: 'gemini-2.0-flash-lite', contents });
       } else throw err;
     }
 
@@ -212,8 +295,8 @@ Do NOT wrap the JSON in markdown. Do NOT add any explanation. Just the raw JSON.
     try {
       response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents });
     } catch (err: any) {
-      if (err.status === 503 || err.message?.includes('503') || err.message?.includes('UNAVAILABLE')) {
-        response = await ai.models.generateContent({ model: 'gemini-2.0-flash', contents });
+      if (err.status === 503 || err.status === 429 || err.message?.includes('503') || err.message?.includes('429') || err.message?.includes('UNAVAILABLE') || err.message?.includes('quota')) {
+        response = await ai.models.generateContent({ model: 'gemini-2.0-flash-lite', contents });
       } else throw err;
     }
 
