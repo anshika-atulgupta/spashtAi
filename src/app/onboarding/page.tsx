@@ -95,7 +95,7 @@ export default function OnboardingPage() {
     setIsSubmitting(true);
     try {
       await setDoc(doc(db, 'users', user.uid), formData);
-      await refreshProfile(user.uid);
+      await refreshProfile();
       router.push('/dashboard');
     } catch (err) {
       console.error('Failed to save profile', err);
